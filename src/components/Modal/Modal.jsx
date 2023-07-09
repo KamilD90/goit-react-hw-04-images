@@ -1,44 +1,47 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import css from './Modal.module.css';
 
-class Modal extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { isOpen: true };
-  }
+const Modal = ({onClose, children}) => {
 
-  componentDidMount() {
-    document.addEventListener('keydown', this.handleKeyDown);
-  }
+  const [isModalOpen, setIsModalOpen]= useState(true);
+  
 
-  componentWillUnmount() {
-    document.removeEventListener('keydown', this.handleKeyDown);
-  }
+  useEffect(() => {
+    const handleKeyDown = event => {
+      if (event.keyCode === 27) {
+        closeModal();
+      }
+    };
 
-  handleKeyDown = event => {
+  document.addEventListener("keydown", handleKeyDown);
+
+  return () => {
+    document.removeEventListener("keydown", handleKeyDown);
+  };
+}, []); 
+
+  const handleKeyDown = event => {
     if (event.keyCode === 27) {
-      this.closeModal();
+      closeModal();
     }
   };
 
-  closeModal = () => {
-    this.setState({ isOpen: false });
-    this.props.onClose();
+  const closeModal = () => {
+   setIsModalOpen(false);
+   onClose ()
   };
 
-  render() {
-    const { isOpen } = this.state;
-    if (!isOpen) {
-      return null;
-    }
+  if (!isModalOpen) {
+    return null;
+  }
 
     return (
-      <div className={css.Overlay} onClick={this.closeModal}>
+      <div className={css.Overlay} onClick={closeModal}>
         <div className={css.Modal} onClick={e => e.stopPropagation()}>
-          {this.props.children}
+          {children}
         </div>
       </div>
     );
-  }
-}
-export default Modal;
+  };
+
+  export default Modal;

@@ -1,6 +1,6 @@
-import React, { Component } from 'react';
 import SearchBar from './SearchBar/SearchBar';
 import { fetchImages } from '../utils/API/fetchImages';
+import React, { useState, useEffect } from 'react';
 import css from './ImageFinder.module.css';
 import Notiflix from 'notiflix';
 // import GalleryItem from './GalleryItem/GalleryItem';
@@ -10,30 +10,29 @@ import LoadMoreBtn from './LoadMoreBtn/LoadMoreBtn';
 
 import Modal from './Modal/Modal';
 
-export class ImageFinder extends Component {
-  constructor() {
-    super();
-    this.state = {
-      currentPage: 0,
-      searchTerm: '',
-      images: [],
-      isLoading: false,
-      error: null,
-      showModal: false,
-      selectedImage: null,
-    };
-  }
-
-  handleSubmit = async (searchTerm, currentPage) => {
+const ImageFinder = () => {
+ 
+  const [currentPage, setCurrentPage] = useState(0);
+  const [images, setImages] = useState([]);
+  const [isLoading, setIsLoading] = useState([]);
+  const [error, setError]= useState(false);
+  const[showModal, setShowModal]= useState(false);
+  const[selectedImage, setSelectedImage]= useState(null);
+  const[searchTerm, setSearchTerm]= useState("");
+  
+  const handleSubmit = async (searchTerm, currentPage) => {
     try {
-      this.setState({ isLoading: true, error: null });
+      setIsLoading(true);
+      setError(null);
 
-      const images = await fetchImages(searchTerm, currentPage);
-      console.log(images);
+      const fetchedImages= await fetchImages(searchTerm, currentPage);
+      setImages (fetchedImages);
 
-      this.setState({ images, isLoading: false });
+      setIsLoading(false);
     } catch (error) {
-      this.setState({ isLoading: false, error });
+      
+      setIsLoading(false);
+      setError(error);
 
       Notiflix.Notify.warning(
         'Wystąpił błąd podczas pobierania obrazów',
@@ -42,49 +41,56 @@ export class ImageFinder extends Component {
     }
   };
 
-  handleLoadMore = async () => {
+  const handleLoadMore = async () => {
     try {
-      this.setState({ isLoading: true });
-      const { searchTerm, currentPage, images } = this.state;
+      setIsLoading(true);
       const nextPage = currentPage + 1;
       const newImages = await fetchImages(searchTerm, nextPage);
-      this.setState({
-        images: [...images, ...newImages],
-        currentPage: nextPage,
-        isLoading: false,
-        error: null,
-      });
+      setImages(prevImages => [...prevImages, ...newImages]);
+        setCurrentPage(nextPage);
+        setIsLoading(false);
+        setError(null);
+      
     } catch (error) {
-      this.setState({ error, isLoading: false });
+      setError(error);
+      setIsLoading(false);
       console.error('Error fetching more images:', error);
     }
   };
 
-  clearImages = () => {
-    this.setState({ images: [] });
+  const clearImages = () => {
+    setImages([]);
   };
 
-  handleImageClick = image => {
-    this.setState({ showModal: true, selectedImage: image });
+  const handleImageClick = image => {
+    setShowModal(true);
+    setSelectedImage(image);
   };
 
-  handleCloseModal = () => {
-    this.setState({ showModal: false, selectedImage: null });
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedImage(null);
   };
 
-  getSearchTerm = e => {
-    this.setState({ searchTerm: e.target.value });
+
+const handleSearchTermChange= e => {
+  setSearchTerm(e.target.value); 
   };
 
-  render() {
-    const { images, isLoading, error, showModal, selectedImage } = this.state;
+  useEffect(() => {
+    if (searchTerm) {
+      handleSubmit(searchTerm, currentPage);
+    }
+  }, [searchTerm, currentPage]);
+
 
     return (
       <div className={css.App}>
         <SearchBar
           className={css.Searchbar}
-          onSubmit={this.handleSubmit}
-          onClearImages={this.clearImages}
+          onSubmit={handleSubmit}
+          onClearImages={clearImages}
+          onSearchTermChange={handleSearchTermChange}
         />
 
         {error && <p>Error: {error.message}</p>}
@@ -99,17 +105,18 @@ export class ImageFinder extends Component {
             wrapperClass={isLoading.toString()} // Convert boolean to string
           />
         )}
-        <ImageGallery images={images} onImageClick={this.handleImageClick} />
+        <ImageGallery images={images} onImageClick={handleImageClick} />
         {images.length > 0 && !isLoading && (
-          <LoadMoreBtn onClick={this.handleLoadMore}>Load More</LoadMoreBtn>
+          <LoadMoreBtn onClick={handleLoadMore}>Load More</LoadMoreBtn>
         )}
 
         {showModal && (
-          <Modal onClose={this.handleCloseModal}>
+          <Modal onClose={handleCloseModal}>
             <img src={selectedImage.largeImageURL} alt={selectedImage.tags} />
           </Modal>
         )}
       </div>
     );
   }
-}
+
+  export default ImageFinder;
